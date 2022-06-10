@@ -3,7 +3,6 @@ import numpy as np
 from torch.utils.data import Dataset as Dataset
 
 
-
 class CityScapes(Dataset):
     """
     CityScapes Dataset. Read images, apply augmentation and preprocessing transformations.
@@ -195,7 +194,6 @@ class BDD100K(Dataset):
         return len(self.images_fps)
     
 
-    
 class CityScapes_class_merge(Dataset):
     """
     Adjusted CityScapes dataloader, that converts the classes as described in Notebook 2. 
