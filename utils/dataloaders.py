@@ -36,7 +36,8 @@ class CityScapes(Dataset):
         'parking', 
         'rail track',  
         'building', 
-        'wall', 'fence', 
+        'wall', 
+        'fence', 
         'guard rail', 
         'bridge', 
         'tunnel',  
@@ -192,3 +193,200 @@ class BDD100K(Dataset):
         
     def __len__(self):
         return len(self.images_fps)
+    
+
+    
+class CityScapes_class_merge(Dataset):
+    """
+    Adjusted CityScapes dataloader, that converts the classes as described in Notebook 2. 
+    DataLoader modified from https://github.com/qubvel/segmentation_models.pytorch 
+    
+    Information regarding CLASSES available here: https://www.cityscapes-dataset.com/dataset-overview/
+    
+    
+    Adjust the labels for the following classes, as described in Notebook 2. 
+    Move guard rail to fence class.
+    Move bridge and tunnel to buildings class.
+    Move polegroup to pole class.
+    Move caravan, trailer and license plate to car.
+    Move parking to road, as we consider it an area where the vehicle may drive/park.
+    Move ground to terrain, as it is part of the area where a vehicle is not supposed to drive.
+    Move rail track to terrain, as it is part of the area where a vehicle is not supposed to drive.
+
+    
+    
+    Args:
+        images (list): List of all paths to the images for the dataset 
+        labels (list): List of all paths to the labels for the dataset 
+        class_values (list): A selection of classes to extract from segmentation mask if not all is to be used. 
+            (e.g. ['car'] or ['car', 'person'], etc.) 
+        augmentation (albumentations.Compose): data transfromation pipeline 
+            (e.g. flip, scale, etc.)
+        preprocessing (albumentations.Compose): data preprocessing 
+            (e.g. noralization, shape manipulation, etc.)
+    """
+    
+    CLASSES = [
+        'unlabeled', 
+        'ego vehicle',
+        'rectification border', 
+        'out of roi', 
+        'static', 
+        'dynamic', 
+        'ground', 
+        'road', 
+        'sidewalk', 
+        'parking', 
+        'rail track',  
+        'building', 
+        'wall', 
+        'fence', 
+        'guard rail', 
+        'bridge', 
+        'tunnel',  
+        'pole', 
+        'polegroup', 
+        'traffic light', 
+        'traffic sign',  
+        'vegetation', 
+        'terrain',  
+        'sky',  
+        'person', 
+        'rider',  
+        'car', 
+        'truck', 
+        'bus', 
+        'caravan',
+        'trailer', 
+        'train', 
+        'motorcycle', 
+        'bicycle', 
+        'license plate',  
+    ]
+    
+    def __init__(
+            self, 
+            images, 
+            labels, 
+            classes=None, 
+            augmentation=None, 
+            preprocessing=None,
+    ):
+        self.images_fps = images
+        self.masks_fps = labels
+        
+        # convert str names to class values on masks
+        if not classes: 
+            classes = self.CLASSES
+        
+        # self.class_values = [self.CLASSES.index(cls.lower()) for cls in classes]
+        self.class_values = list()
+        for cls in classes:
+            if cls == 'fence': 
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('guard rail')])
+            elif cls == 'building':
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('bridge'), self.CLASSES.index('tunnel')])
+            elif cls == 'pole': 
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('polegroup')])
+            elif cls == 'car': 
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('caravan'), self.CLASSES.index('trailer'), self.CLASSES.index('license plate')])
+            elif cls == 'road': 
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('parking')])
+            elif cls == 'terrain': 
+                self.class_values.append([self.CLASSES.index(cls.lower()), self.CLASSES.index('ground'), self.CLASSES.index('rail track')])
+            elif cls in ['guard rail', 'bridge', 'tunnel', 'polegroup', 'caravan', 'trailer', 'license plate', 'parking', 'ground', 'rail track']:
+                continue 
+            else: 
+                self.class_values.append(self.CLASSES.index(cls.lower()))
+        
+        self.augmentation = augmentation
+        self.preprocessing = preprocessing
+    
+    def __getitem__(self, i):
+        
+        # read data
+        image = cv2.imread(self.images_fps[i])
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        mask = cv2.imread(self.masks_fps[i], 0)
+        
+        
+        # extract certain classes from mask (e.g. cars)
+        masks = list()
+        for cls_value in self.class_values: 
+            if isinstance(cls_value, list):  # If cls is a list, i.e. modified from above. 
+                temp = [(mask == v) for v in cls_value]
+                temp_numpy = np.stack(temp, axis=0).astype('float')
+                # temp_mask = temp_numpy
+                temp_mask = np.logical_or.reduce(temp_numpy, axis=0)*1  # Merge all masks for the given class. 
+            else: 
+                temp_mask = (mask == cls_value)
+            masks.append(temp_mask) 
+        
+        mask = np.stack(masks, axis=-1).astype('float')
+        
+        # apply augmentations
+        if self.augmentation:
+            sample = self.augmentation(image=image, mask=mask)
+            image, mask = sample['image'], sample['mask']
+        
+        # apply preprocessing
+        if self.preprocessing:
+            sample = self.preprocessing(image=image, mask=mask)
+            image, mask = sample['image'], sample['mask']
+            
+        return image, mask
+        
+    def __len__(self):
+        return len(self.images_fps)
+    
+class CityScapes_bdd100k_merge(Dataset):
+    ''' 
+    Args:
+    images (list): List of all paths to the images for the dataset 
+    labels (list): List of all paths to the labels for the dataset 
+    class_values (list): A selection of classes to extract from segmentation mask if not all is to be used. 
+        (e.g. ['car'] or ['car', 'person'], etc.) 
+    augmentation (albumentations.Compose): data transfromation pipeline 
+        (e.g. flip, scale, etc.)
+    preprocessing (albumentations.Compose): data preprocessing 
+        (e.g. noralization, shape manipulation, etc.)
+    """
+    '''
+    CLASSES = [
+        'road', 'sidewalk', 'building', 'wall', 
+        'fence', 'pole', 'traffic light', 'traffic sign', 
+        'vegetation', 'terrain', 'sky', 
+        'person', 'rider', 
+        'car', 'truck', 'bus', 'train', 'motorcycle', 'bicycle'
+    ]
+    
+    def __init__(self, cityscapes, bdd100k, shuffle=False):
+        self.cityscapes = cityscapes 
+        self.bdd100k = bdd100k
+        
+        self.bdd_len = len(bdd100k)
+        self.cityscapes_len = len(cityscapes)
+        self.shuffle = shuffle 
+        
+        self.bdd_arange = np.arange(0, self.bdd_len)
+        self.cityscapes_arange = np.arange(self.bdd_len, self.bdd_len+self.cityscapes_len)
+        self.sample_indexes = np.concatenate([self.bdd_arange, self.cityscapes_arange]) 
+        if self.shuffle: 
+            self.shuffle_samples() 
+     
+    def shuffle_samples(self): 
+        np.random.shuffle(self.sample_indexes)
+        
+    def __getitem__(self, i):
+        if i == 0 and self.shuffle:  # New epoch 
+            self.shuffle_samples() 
+        idx = self.sample_indexes[i]
+        
+        if idx < self.bdd_len:
+            return self.bdd100k[idx]
+        return self.cityscapes[idx-self.bdd_len] 
+   
+    def __len__(self): 
+        return(self.bdd_len + self.cityscapes_len)
+    
+    
