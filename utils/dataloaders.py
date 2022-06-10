@@ -339,6 +339,7 @@ class CityScapes_class_merge(Dataset):
     def __len__(self):
         return len(self.images_fps)
     
+
 class CityScapes_bdd100k_merge(Dataset):
     ''' 
     Args:
