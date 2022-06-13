@@ -192,6 +192,11 @@ class BDD100K(Dataset):
         
     def __len__(self):
         return len(self.images_fps)
+        
+    def visualize(self, i): 
+        image = cv2.imread(self.images_fps[i])
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image 
     
 
 class CityScapes_class_merge(Dataset):
@@ -337,6 +342,11 @@ class CityScapes_class_merge(Dataset):
     def __len__(self):
         return len(self.images_fps)
     
+    def visualize(self, i): 
+        image = cv2.imread(self.images_fps[i])
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        return image 
+    
 
 class CityScapes_bdd100k_merge(Dataset):
     ''' 
@@ -373,6 +383,11 @@ class CityScapes_bdd100k_merge(Dataset):
         if self.shuffle: 
             self.shuffle_samples() 
      
+    def ignore_pre_processor(self):
+        # For image visualization: Ignore the preprocessor for a separate dataloader. 
+        self.cityscapes.preprocessing = None
+        self.bdd100k.preprocessing = None 
+    
     def shuffle_samples(self): 
         np.random.shuffle(self.sample_indexes)
         
@@ -384,8 +399,13 @@ class CityScapes_bdd100k_merge(Dataset):
         if idx < self.bdd_len:
             return self.bdd100k[idx]
         return self.cityscapes[idx-self.bdd_len] 
-   
+        
     def __len__(self): 
         return(self.bdd_len + self.cityscapes_len)
     
+    def visualize(self, i):
+        idx = self.sample_indexes[i]
+        if idx < self.bdd_len:
+            return self.bdd100k.visualize(idx)
+        return self.cityscapes.visualize(idx-self.bdd_len)
     
