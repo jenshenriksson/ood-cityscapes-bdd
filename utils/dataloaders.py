@@ -1,6 +1,10 @@
 import cv2 
 import numpy as np
 from torch.utils.data import Dataset as Dataset
+from parameters import * 
+import sys
+sys.path.append('..')
+import utils as CU
 
 
 class CityScapes(Dataset):
@@ -408,4 +412,3 @@ class CityScapes_bdd100k_merge(Dataset):
         if idx < self.bdd_len:
             return self.bdd100k.visualize(idx)
         return self.cityscapes.visualize(idx-self.bdd_len)
-    
