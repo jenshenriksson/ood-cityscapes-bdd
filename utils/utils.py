@@ -1,5 +1,28 @@
 import os 
 import matplotlib.pyplot as plt 
+from tqdm import tqdm 
+import numpy as np 
+
+
+
+def compute_pixel_distribution(dataset=None, verbose=True): 
+    num_classes = len(dataset.class_values)
+    distribution = [0] * num_classes
+    
+    for i in tqdm(range(len(dataset))): 
+        _, lbl = dataset[i]
+        pixels = lbl.shape[0] * lbl.shape[1]
+        for j in range(num_classes): 
+            distribution[j] += lbl[:, :, j].sum() / pixels
+    
+    for j in range(num_classes): 
+        distribution[j] = distribution[j] / len(dataset)
+    if verbose: 
+        for cls, prc in zip(dataset.CLASSES, distribution):
+            print("{}: {}%".format(cls, np.round(prc*100,2)))
+        print("Sum: {}".format(100.0*np.sum(distribution)))
+    return distribution
+
 
 def list_dir_recursive(input_path, endswith=None):
     '''
@@ -36,37 +59,5 @@ def visualize(**images):
     
     
 
-def check_cityscapes_labels_found(images, labels): 
-    """
-    For CityScapes it is rather easy, as each image has a corresponding label, no errors will be found.
-    If some file is missing it will print out which sample is missing. 
-    
-    """
-    for img, lbl in zip(images, labels): 
-        im = img.split('images/')[-1]
-        lb = lbl.split('labels/')[-1]
-        
-        if not im.replace('_leftImg8bit.png', '') == lb.replace('_gtFine_labelIds.png', ''):
-            print('Missmatch here\n {}\n {}: '.format(im, lb))
-            return
-    print('All labels found')
-
     
 
-def check_bdd100k_images_found(images, labels): 
-    """
-    For CityScapes it is rather easy, as each image has a corresponding label, no errors will be found.
-    If some file is missing it will print out which sample is missing. 
-    
-    """
-    for img, lbl in zip(images, labels): 
-        im = img.split('images/')[-1]
-        lb = lbl.split('labels/')[-1]
-        
-        im = im.replace('.jpg', '')
-        lb = lb.replace('-mask.png', '') 
-        
-        if not im == lb:
-            print('Missmatch here\n {}\n {}: '.format(im, lb))
-            return
-    print('All labels found')

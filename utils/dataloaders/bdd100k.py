@@ -24,7 +24,6 @@ albuWidth = albu.Compose([
 ])
 
 
-
 class BDD100K(Dataset):
     """    
     DataLoader for the Semantic Segmentation subset of BDD100K. 
@@ -142,3 +141,22 @@ class BDD100K(Dataset):
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image 
     
+
+
+def check_bdd100k_images_found(images, labels): 
+    """
+    For CityScapes it is rather easy, as each image has a corresponding label, no errors will be found.
+    If some file is missing it will print out which sample is missing. 
+    
+    """
+    for img, lbl in zip(images, labels): 
+        im = img.split('images/')[-1]
+        lb = lbl.split('labels/')[-1]
+        
+        im = im.replace('.jpg', '')
+        lb = lb.replace('-mask.png', '') 
+        
+        if not im == lb:
+            print('Missmatch here\n {}\n {}: '.format(im, lb))
+            return
+    print('All labels found')

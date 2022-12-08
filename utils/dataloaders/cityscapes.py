@@ -25,6 +25,7 @@ albuWidth = albu.Compose([
 
 
 
+
 class CityScapes(Dataset):
     """
     CityScapes Dataset. Read images, apply augmentation and preprocessing transformations.
@@ -342,3 +343,68 @@ class CityScapes_class_merge(Dataset):
         image = cv2.imread(self.images_fps[i])
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         return image 
+
+
+def check_cityscapes_labels_found(images, labels): 
+    """
+    For CityScapes it is rather easy, as each image has a corresponding label, no errors will be found.
+    If some file is missing it will print out which sample is missing. 
+    
+    """
+    for img, lbl in zip(images, labels): 
+        im = img.split('images/')[-1]
+        lb = lbl.split('labels/')[-1]
+        
+        if not im.replace('_leftImg8bit.png', '') == lb.replace('_gtFine_labelIds.png', ''):
+            print('Missmatch here\n {}\n {}: '.format(im, lb))
+            return
+    print('All labels found')
+
+
+def kitti_create_list_of_samples(train_txt=None, val_txt=None, base_path='/', subset=100):
+    if train_txt is None or val_txt is None:
+        raise ValueError('No label files sent')
+    
+    train_images, train_labels, validation_images, validation_labels = [], [], [], []
+    
+    with open(train_txt) as f:
+        lines = f.readlines()
+        
+        for line in lines: 
+            image, label = line.strip().split(' ')
+            train_images.append(os.path.join(base_path, image))
+            train_labels.append(os.path.join(base_path, label))
+        
+    with open(val_txt) as f: 
+        lines = f.readlines()
+        for line in lines: 
+            image, label = line.strip().split(' ')
+            validation_images.append(os.path.join(base_path, image))
+            validation_labels.append(os.path.join(base_path, label))
+    
+    subset_divider = int(100/subset)
+    return train_images[::subset_divider], train_labels[::subset_divider], validation_images[::subset_divider], validation_labels[::subset_divider]
+
+
+def check_kitti360_labels_found(images, labels): 
+    """
+    Go through all the images from the valdation and train text files. Make sure they are found 
+    in the Data storage folder. Also, make sure all images have a corresponding label file. 
+    
+    """
+    for img, lbl in zip(images, labels): 
+        im = img.split('data_2d_raw/')[-1]
+        lb = lbl.split('data_2d_semantics/train/')[-1]
+        
+        im = im.replace('data_rect/', '')
+        lb = lb.replace('semantic/', '')
+        if not os.path.isfile(img): 
+            Warning('Image file not found: {}'.format(img))
+        if not os.path.isfile(lbl): 
+            Warning('Label file not found: {}'.format(lbl))
+        
+        if not im == lb:
+            print('Missmatch here\n {}\n {}: '.format(img, lbl))
+            return 
+    print('All labels found')
+
